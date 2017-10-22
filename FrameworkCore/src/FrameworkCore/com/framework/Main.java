@@ -1,6 +1,7 @@
 package com.framework;
 
 import java.io.*;
+import java.net.URL;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -8,13 +9,29 @@ public class Main
 {
     public static void main( String[] args )
     {
-        Optional<Module> otherModule = ModuleLayer.boot().findModule("PlaygroundApi");
-        otherModule.ifPresent(other -> {
+        // load from anywhere in the modulepath
+        try {
+            URL url = ClassLoader.getSystemResources("config.yml").nextElement();
+            InputStream is = url.openStream();
+            Main.read(is);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        // load from the the module where a given class is
+        try {
+            InputStream is = Class.forName("com.playground.api.App").getResourceAsStream("/config.yml");
+            Main.read(is);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+
+        // load from a specific module
+        Optional<Module> specificModule = ModuleLayer.boot().findModule("PlaygroundApi");
+        specificModule.ifPresent(module -> {
             try {
-                InputStream is1 = other.getResourceAsStream("config.yml");
-                InputStream is2 = Class.forName("com.playground.api.App").getResourceAsStream("/config.yml");
-                Main.read(is1);
-                Main.read(is2);
+                InputStream is = module.getResourceAsStream("config.yml");
+                Main.read(is);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
